@@ -1,11 +1,14 @@
 import Car from "./Car.js";
+import { CarPost } from "./CarPost.js";
 const inputElement = document.querySelector('#mon-input1');
 const inputElement2 = document.querySelector('#mon-input2');
 const inputElement3 = document.querySelector('#mon-input3');
 const leBouton = document.querySelector('#mon-bouton');
 const editBouton = document.querySelector('#edit-bouton');
+const divEdit = document.querySelector('#edit');
 // const category = document.querySelector('#category-select') as HTMLButtonElement
 let tabCar = [];
+let clickEdit = 0;
 // category.addEventListener('change', (event: Event)=>{
 //     const { target } = event
 //     // console.log((target as HTMLInputElement).value == 'nom')
@@ -36,9 +39,16 @@ let tabCar = [];
 //     console.log(tabContact)
 // })
 const urlPost = "http://localhost:8080/car";
+async function afficherCars() {
+    const reponse = await fetch("http://localhost:8080/cars");
+    const cars = await reponse.json();
+    console.log(tabCar);
+    tabCar = cars;
+    console.log(cars);
+    createCar();
+}
 leBouton.addEventListener('click', () => {
     const car = new Car(inputElement.value, inputElement2.value, inputElement3.value);
-    tabCar.push(car);
     console.log(Car.count);
     console.log(JSON.stringify(tabCar));
     async function postData(urlPost, tabCar) {
@@ -51,10 +61,13 @@ leBouton.addEventListener('click', () => {
             },
             body: JSON.stringify(car), // le type utilisé pour le corps doit correspondre à l'en-tête "Content-Type"
         });
+        if (response) {
+            afficherCars();
+        }
         return response.json(); // transforme la réponse JSON reçue en objet JavaScript natif
     }
     postData(urlPost, tabCar);
-    createCar();
+    afficherCars();
 });
 const createCar = () => {
     const tabT = document.querySelector('ul#tabContact');
@@ -73,57 +86,67 @@ const createCar = () => {
         button.addEventListener('click', () => {
             li.remove();
             button.remove();
+            buttonEdit.remove();
             tabCar.splice(car.id, 1);
+            console.log(car.id);
+            let resp;
             async function deleteData() {
                 // Les options par défaut sont indiquées par *
                 const response = await fetch(`http://localhost:8080/car/${car.id}`, {
-                    method: "DELETE", // *GET, POST, PUT, DELETE, etc.
+                    method: "DELETE",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': "*",
+                    }
                 });
-                return response.json(); // transforme la réponse JSON reçue en objet JavaScript natif
+                resp = await response.json(); // transforme la réponse JSON reçue en objet JavaScript natif
+                tabCar = [];
+                tabCar = resp;
+                console.log(tabCar);
             }
             deleteData();
             console.log(tabCar);
         });
         buttonEdit.addEventListener('click', () => {
-            console.log();
-            const inputMarque = document.createElement('input');
-            const inputModel = document.createElement('input');
-            const inputPuissance = document.createElement('input');
-            const enterButton = document.createElement('button');
-            // enterButton.setAttribute("type", "submit");
-            // enterButton.setAttribute("value", "Submit");
-            enterButton.appendChild(document.createTextNode("Enter"));
-            tabT?.appendChild(inputMarque);
-            tabT?.appendChild(inputModel);
-            tabT?.appendChild(inputPuissance);
-            tabT?.appendChild(enterButton);
-            enterButton.addEventListener('click', () => {
-                const car = new Car(inputMarque.value, inputModel.value, inputPuissance.value);
-                editCar();
-                async function editCar() {
-                    // Les options par défaut sont indiquées par *
-                    const response = await fetch(`http://localhost:8080/car/${car.id}`, {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            // 'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: JSON.stringify(car), // le type utilisé pour le corps doit correspondre à l'en-tête "Content-Type"
-                    });
-                    return response.json(); // transforme la réponse JSON reçue en objet JavaScript natif
-                }
-            });
-            createCar();
-            console.log(tabCar);
+            clickEdit++;
+            if (clickEdit == 1) {
+                console.log('ok');
+                const inputMarque = document.createElement('input');
+                const inputModel = document.createElement('input');
+                const inputPuissance = document.createElement('input');
+                const enterButton = document.createElement('button');
+                // enterButton.setAttribute("type", "submit");
+                // enterButton.setAttribute("value", "Submit");
+                enterButton.appendChild(document.createTextNode("Enter"));
+                divEdit?.appendChild(inputMarque);
+                divEdit?.appendChild(inputModel);
+                divEdit?.appendChild(inputPuissance);
+                divEdit?.appendChild(enterButton);
+                enterButton.addEventListener('click', () => {
+                    clickEdit = 0;
+                    divEdit.innerHTML = "";
+                    const car1 = new CarPost(car.id, inputMarque.value, inputModel.value, inputPuissance.value);
+                    console.log(car1);
+                    console.log("ok");
+                    async function editCar() {
+                        // Les options par défaut sont indiquées par *
+                        console.log(car.id);
+                        const response = await fetch(`http://localhost:8080/car/${car.id}`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                // 'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: JSON.stringify(car1), // le type utilisé pour le corps doit correspondre à l'en-tête "Content-Type"
+                        });
+                        tabCar = await response.json(); // transforme la réponse JSON reçue en objet JavaScript natif
+                    }
+                    editCar();
+                    location.reload();
+                });
+                console.log(tabCar);
+            }
         });
     });
 };
-async function afficherCars() {
-    const reponse = await fetch("http://localhost:8080/cars");
-    const cars = await reponse.json();
-    console.log(cars);
-    tabCar = cars;
-    console.log(cars);
-    createCar();
-}
 document.addEventListener("DOMContentLoaded", afficherCars);
